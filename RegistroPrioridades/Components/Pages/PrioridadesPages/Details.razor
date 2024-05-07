@@ -1,0 +1,56 @@
+﻿@page "/Prioridad/Details"
+@page "/Prioridad/Details/{PrioridadId:int}"
+@inject PrioridadService PrioridadService
+@inject NavigationManager navigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Detalles de Prioridades</PageTitle>
+
+@if (Prioridad != null)
+{
+    <div class="container">
+        <div class="card shadow-header">
+            <div class="card-header  bg-primary text-white text-center py-2 rounded">
+                <h3 class="text-center"><strong>Detalles de la Prioridad</strong></h3>
+            </div>
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6">
+                           
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li><strong>PrioridadId:</strong> @Prioridad.PrioridadId</li>
+                                    <li><strong>Descripción:</strong> @Prioridad.Descripcion</li>
+                                    <li><strong>Días Compromiso:</strong> @Prioridad.DiasCompromiso</li>
+                                </ul>
+                            </div>
+                        
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-outline-primary" @onclick="Volver"><i class="bi bi-box-arrow-left"></i> Volver</button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <p>Prioridad no encontrada.</p>
+}
+
+@code {
+    [Parameter]
+    public int PrioridadId { get; set; }
+    public Prioridades? Prioridad { get; set; } = new Prioridades();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Prioridad = await PrioridadService.Buscar(PrioridadId);
+    }
+
+    public void Volver()
+    {
+        navigationManager.NavigateTo("/Prioridad/Index");
+    }
+}
