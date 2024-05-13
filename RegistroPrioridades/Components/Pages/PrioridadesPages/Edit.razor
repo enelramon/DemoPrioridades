@@ -85,17 +85,16 @@
         }
     }
 
-    public bool Validar()
+    public async Task<bool> Validar()
     {
         //TODO: Cambiar por Any y llevarlo al servicio.
-        Existe = (PrioridadService.Listar(pr => pr.Descripcion!.ToLower() == Prioridad.Descripcion!.ToLower() 
-        && pr.PrioridadId != Prioridad.PrioridadId).Any());
+        Existe = await PrioridadService.Existe(Prioridad.PrioridadId, Prioridad.Descripcion);
         return Existe;
     }
 
     public async Task Guardar()
     {
-        if (Validar())
+        if (await Validar())
         {
             return;
         }

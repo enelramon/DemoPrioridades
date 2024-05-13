@@ -42,6 +42,20 @@ public class PrioridadService
 
     }
 
+    public async Task<bool> Existe(string? descripcion, int? prioridadId = null)
+    {
+        return await _context.Prioridades
+            .AnyAsync(p => p.Descripcion.Equals(descripcion));
+    }
+
+
+    public async Task<bool> Existe(int prioridadId, string? descripcion)
+    {
+        //TODO: Unir los dos existe en uno solo para reducir duplicidad de codigo.
+        return await _context.Prioridades
+            .AnyAsync(p => p.PrioridadId != prioridadId && p.Descripcion.Equals(descripcion));
+    }
+
     public async Task<bool> Eliminar(int id)
     {
         var prioridades = await _context.Prioridades
@@ -57,12 +71,12 @@ public class PrioridadService
             .FirstOrDefaultAsync(P => P.PrioridadId == id);
     }
 
-    public List<Prioridades> Listar(Expression<Func<Prioridades, bool>> criterio)
+    public async Task<List<Prioridades>> Listar(Expression<Func<Prioridades, bool>> criterio)
     {
-        return _context.Prioridades
+        return await _context.Prioridades
             .AsNoTracking()
             .Where(criterio)
-            .ToList();
+            .ToListAsync();
 
     }
 }
