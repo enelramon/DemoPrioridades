@@ -2,13 +2,18 @@
 
 @inject PrioridadService PrioridadesService;
 @rendermode InteractiveServer
-
-
+ 
 <EditForm Model="ListaPrioridades" class="border shadow-lg p-3 rounded">
+   
+    <Toasts class="p-3" Messages="messages" Placement="ToastsPlacement.TopRight" />
+    
     <div class="card-header bg-primary text-white text-center py-2 rounded">
         <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Consulta Prioridades</h3>
     </div>
     <div class="card-body">
+        <Button Color="ButtonColor.Primary" 
+        @onclick="() => ShowMessage(ToastType.Primary)">Primary Toast</Button>
+
         <div class="row mb-3 align-items-end">
             <div class="col-md-3">
                 <label for="Filtro" class="form-label">Filtrar por:</label>
@@ -80,8 +85,21 @@
 
     public List<Prioridades> ListaPrioridades = new List<Prioridades>();
 
+    List<ToastMessage> messages = new List<ToastMessage>();
+
     private string filtro = "Id";
     private string valorFiltro = "";
+
+    private void ShowMessage(ToastType toastType) => messages.Add(CreateToastMessage(toastType));
+
+    private ToastMessage CreateToastMessage(ToastType toastType)
+    => new ToastMessage
+        {
+            Type = toastType,
+            Title = "Blazor Bootstrap",
+            HelpText = $"{DateTime.Now}",
+            Message = $"Hello, world! This is a toast message. DateTime: {DateTime.Now}",
+        };
 
     protected override async Task OnInitializedAsync()
     {

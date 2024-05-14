@@ -10,6 +10,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Blazor.Bootstrap" Version="2.2.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.4" />
 		<PackageReference Include="Microsoft.EntityFrameWorkCore.sqlite" Version="8.0.4" />
 		<PackageReference Include="Microsoft.EntityFrameWorkCore.tools" Version="8.0.4">
