@@ -1,5 +1,4 @@
-﻿@page "/Prioridad/Edit"
-@page "/Prioridad/Edit/{PrioridadId:int}"
+﻿@page "/Prioridad/Edit/{PrioridadId:int}"
 @inject PrioridadService PrioridadService
 @inject NavigationManager NavigationManager
 @rendermode InteractiveServer
@@ -52,14 +51,17 @@
 
 @code {
     [Parameter]
-    public int PrioridadId { get; set; }
+    public int? PrioridadId { get; set; }
     public Prioridades Prioridad { get; set; } = new Prioridades();
     private bool Existe = false;
 
     protected override async Task OnInitializedAsync()
     {
-        if (PrioridadId != 0)
+        if (PrioridadId.HasValue)
         {
+            // si recibimos un {PrioridadId:int} por parametro asignarlo
+            // y luego buscarla para que se vea en pantalla
+            Prioridad.PrioridadId = PrioridadId.Value;
             await Buscar();
         }
     }
@@ -72,29 +74,31 @@
 
     public async Task Buscar()
     {
-        Existe = false;
-        var prioridadEncontrada = await PrioridadService.Buscar(PrioridadId);
+        var prioridadEncontrada = await PrioridadService.Buscar(Prioridad.PrioridadId);
 
         if (prioridadEncontrada != null)
         {
             Prioridad = prioridadEncontrada;
         }
-        else
-        {
-            Nuevo();
-        }
+        // else
+        // {
+        //     notificationService.ShowNotification(
+        //     titulo: "Error de Busqueda",
+        //     mensaje: "Registro no encontrado",
+        //     NotificationSeverity.Error);
+        // }
     }
 
     public async Task<bool> Validar()
     {
         //TODO: Cambiar por Any y llevarlo al servicio.
         Existe = await PrioridadService.Existe(Prioridad.PrioridadId, Prioridad.Descripcion);
-        return Existe;
+        return !Existe;
     }
 
     public async Task Guardar()
     {
-        if (await Validar())
+        if (!await Validar())
         {
             return;
         }
@@ -102,7 +106,7 @@
         var guardo = await PrioridadService.Guardar(Prioridad);
         if (guardo)
         {
-             Nuevo();
+            Nuevo();
         }
     }
 

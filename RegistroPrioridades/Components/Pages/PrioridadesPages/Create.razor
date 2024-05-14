@@ -1,5 +1,4 @@
 ﻿@page "/Prioridad/Create"
-@page "/Prioridad/Create/{PrioridadId:int}"
 @inject PrioridadService PrioridadService
 @inject NavigationManager NavigationManager
 @rendermode InteractiveServer
@@ -82,12 +81,12 @@
     public async Task<bool> Validar()
     {
         Existe = await PrioridadService.Existe(Prioridad.Descripcion);
-        return Existe;
+        return !Existe;
     }
 
     public async Task Guardar()
     {
-        if (await Validar())
+        if (!await Validar())
         {
             return;
         }
