@@ -51,20 +51,20 @@
                     <td>@prioridad.Descripcion</td>
                     <td>@prioridad.DiasCompromiso</td>
                     <td>
-                        <a href="/Prioridad/Details/@prioridad.PrioridadId" style="border: none; background-color: transparent;" class="btn-detalle">
-                            <span class="bi bi-info-circle-fill" style="font-size: 2rem;"></span>
-                        </a>
-
-                    </td>
-                    <td>
-                        <a href="/Prioridad/Edit/@prioridad.PrioridadId" style="border: none; background-color: transparent;" class="btn-editar">
-                            <span class="bi bi-marker-tip" style="font-size: 2rem;"></span>
+                        <a class="btn btn-outline-primary" href="/Prioridad/Details/@prioridad.PrioridadId">
+                            <span class="bi bi-info-circle-fill"></span>
                         </a>
                     </td>
 
                     <td>
-                        <a href="/Prioridad/Delete/@prioridad.PrioridadId" style="border: none; background-color: transparent;" class="btn-eliminar">
-                            <span class="bi bi-dash-circle-fill" style="font-size: 2rem;"></span>
+                        <a class="btn btn-outline-success" href="/Prioridad/Edit/@prioridad.PrioridadId">
+                            <span class="bi bi-marker-tip"></span>
+                        </a>
+                    </td>
+
+                    <td>
+                        <a class="btn btn-outline-warning" href="/Prioridad/Delete/@prioridad.PrioridadId">
+                            <span class="bi bi-dash-circle-fill"></span>
                         </a>
                     </td>
                 </tr>
