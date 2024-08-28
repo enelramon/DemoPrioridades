@@ -42,7 +42,7 @@ public class PrioridadService
 
     }
 
-    public async Task<bool> Existe(string? descripcion, int? prioridadId = null)
+    public async Task<bool> ExisteDescripcion(string? descripcion, int? prioridadId = null)
     {
         return await _context.Prioridades
             .AnyAsync(p => p.Descripcion.Equals(descripcion));

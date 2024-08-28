@@ -6,9 +6,10 @@ public class Prioridades
 {
     [Key]
     public int PrioridadId { get; set; }
-    [Required(ErrorMessage = "El Campo Descripción es obligatorio")]
+    [Required(ErrorMessage = "El campo descripción es obligatorio.")]
     public string? Descripcion { get; set; }
 
+    [Required(ErrorMessage = "El campo días es obligatorio.")]
     public int DiasCompromiso { get; set; }
 
 }
