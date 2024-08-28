@@ -14,24 +14,24 @@ public class PrioridadService
         _context = contexto;
     }
 
-    public async Task<bool> Guardar(Prioridades Prioridad)
+    public async Task<bool> Guardar(Prioridades prioridad)
     {
         //Busca la prioridad, si no existe la inserta, si existe la modifica
-        if (!await Existe(Prioridad.PrioridadId))
-            return await Insertar(Prioridad);
+        if (!await Existe(prioridad.PrioridadId))
+            return await Insertar(prioridad);
         else
-            return await Modificar(Prioridad);
+            return await Modificar(prioridad);
     }
 
-    public async Task<bool> Insertar(Prioridades Prioridades)
+    public async Task<bool> Insertar(Prioridades prioridad)
     {
-        _context.Prioridades.Add(Prioridades);
+        _context.Prioridades.Add(prioridad);
         return await _context.SaveChangesAsync() > 0;
     }
 
-    public async Task<bool> Modificar(Prioridades Prioridades)
+    public async Task<bool> Modificar(Prioridades prioridad)
     {
-        _context.Update(Prioridades);
+        _context.Update(prioridad);
         return await _context.SaveChangesAsync() > 0;
     }
 
