@@ -1,0 +1,144 @@
+@page "/Search/Demo"
+@using RegistroPrioridades.Models
+@rendermode InteractiveServer
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">
+                <i class="bi bi-search me-2"></i>
+                Demo: Componente de Búsqueda con Paginación
+            </h3>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-4">
+                Este es un ejemplo de uso del componente <code>SearchPaginated</code> con datos simulados.
+                Prueba escribir en el campo de búsqueda o navegar entre páginas.
+            </p>
+
+            <SearchPaginated TItem="ProductoDemo"
+                             DataProvider="BuscarProductosAsync"
+                             Placeholder="Buscar productos..."
+                             PageSize="5">
+                <ItemTemplate Context="producto">
+                    <div class="card mb-2">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-1">@producto.Nombre</h5>
+                                <p class="card-text text-muted mb-0">@producto.Descripcion</p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success fs-6">@producto.Precio.ToString("C")</span>
+                                <br />
+                                <small class="text-muted">Stock: @producto.Stock</small>
+                            </div>
+                        </div>
+                    </div>
+                </ItemTemplate>
+            </SearchPaginated>
+        </div>
+    </div>
+
+    <div class="card shadow mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Características del Componente</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <strong>Debounce:</strong> El componente espera 300ms antes de ejecutar la búsqueda
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <strong>Cancelación:</strong> Las peticiones anteriores se cancelan automáticamente
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <strong>Loading:</strong> Muestra un spinner mientras carga
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <strong>Errores:</strong> Muestra alertas descartables en caso de error
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-check-circle text-success me-2"></i>
+                    <strong>Accesibilidad:</strong> Incluye atributos ARIA para lectores de pantalla
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Datos de ejemplo simulando productos
+    private static readonly List<ProductoDemo> _productosSimulados = new()
+    {
+        new ProductoDemo { Id = 1, Nombre = "Laptop HP Pavilion", Descripcion = "Laptop 15.6 pulgadas, Intel i5, 8GB RAM", Precio = 899.99m, Stock = 15 },
+        new ProductoDemo { Id = 2, Nombre = "Mouse Logitech MX Master", Descripcion = "Mouse inalámbrico ergonómico", Precio = 99.99m, Stock = 50 },
+        new ProductoDemo { Id = 3, Nombre = "Teclado Mecánico Razer", Descripcion = "Teclado gaming RGB switches Cherry MX", Precio = 149.99m, Stock = 30 },
+        new ProductoDemo { Id = 4, Nombre = "Monitor Dell 27\"", Descripcion = "Monitor 4K UHD IPS Panel", Precio = 449.99m, Stock = 20 },
+        new ProductoDemo { Id = 5, Nombre = "Auriculares Sony WH-1000XM5", Descripcion = "Auriculares inalámbricos con cancelación de ruido", Precio = 349.99m, Stock = 25 },
+        new ProductoDemo { Id = 6, Nombre = "Webcam Logitech C920", Descripcion = "Webcam Full HD 1080p", Precio = 79.99m, Stock = 40 },
+        new ProductoDemo { Id = 7, Nombre = "SSD Samsung 1TB", Descripcion = "Disco sólido NVMe M.2", Precio = 129.99m, Stock = 60 },
+        new ProductoDemo { Id = 8, Nombre = "RAM Corsair 16GB DDR4", Descripcion = "Memoria RAM 3200MHz", Precio = 69.99m, Stock = 45 },
+        new ProductoDemo { Id = 9, Nombre = "Tablet iPad Air", Descripcion = "iPad Air 10.9 pulgadas 64GB", Precio = 599.99m, Stock = 12 },
+        new ProductoDemo { Id = 10, Nombre = "Smartphone Samsung S23", Descripcion = "Samsung Galaxy S23 Ultra 256GB", Precio = 1199.99m, Stock = 8 },
+        new ProductoDemo { Id = 11, Nombre = "Impresora HP LaserJet", Descripcion = "Impresora láser monocromática", Precio = 249.99m, Stock = 18 },
+        new ProductoDemo { Id = 12, Nombre = "Router WiFi 6 Asus", Descripcion = "Router gaming de alta velocidad", Precio = 199.99m, Stock = 22 },
+        new ProductoDemo { Id = 13, Nombre = "Disco Duro Externo 2TB", Descripcion = "WD Elements USB 3.0", Precio = 79.99m, Stock = 35 },
+        new ProductoDemo { Id = 14, Nombre = "Cable HDMI 2.1", Descripcion = "Cable HDMI 8K 2 metros", Precio = 24.99m, Stock = 100 },
+        new ProductoDemo { Id = 15, Nombre = "Hub USB-C 7 en 1", Descripcion = "Adaptador multipuerto USB-C", Precio = 49.99m, Stock = 55 },
+        new ProductoDemo { Id = 16, Nombre = "Silla Gamer Secretlab", Descripcion = "Silla ergonómica para gaming", Precio = 449.99m, Stock = 10 },
+        new ProductoDemo { Id = 17, Nombre = "Micrófono Blue Yeti", Descripcion = "Micrófono USB profesional", Precio = 129.99m, Stock = 28 },
+        new ProductoDemo { Id = 18, Nombre = "Luz LED Ring Light", Descripcion = "Aro de luz 18 pulgadas con trípode", Precio = 59.99m, Stock = 33 },
+        new ProductoDemo { Id = 19, Nombre = "Tarjeta Gráfica RTX 4070", Descripcion = "NVIDIA GeForce RTX 4070 12GB", Precio = 599.99m, Stock = 5 },
+        new ProductoDemo { Id = 20, Nombre = "Fuente de Poder 750W", Descripcion = "Corsair RM750 80+ Gold", Precio = 109.99m, Stock = 42 }
+    };
+
+    /// <summary>
+    /// Simulates a database search with delay.
+    /// </summary>
+    private async Task<SearchResult<ProductoDemo>> BuscarProductosAsync(SearchRequest request)
+    {
+        // Simulate network/database delay
+        await Task.Delay(500);
+
+        // Filter products by search text
+        var query = _productosSimulados.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.Text))
+        {
+            var searchText = request.Text.ToLower();
+            query = query.Where(p =>
+                p.Nombre.ToLower().Contains(searchText) ||
+                p.Descripcion.ToLower().Contains(searchText));
+        }
+
+        var totalCount = query.Count();
+
+        // Apply pagination
+        var items = query
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        return new SearchResult<ProductoDemo>
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
+    }
+
+    /// <summary>
+    /// Demo product class for the example.
+    /// </summary>
+    public class ProductoDemo
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
+        public int Stock { get; set; }
+    }
+}
