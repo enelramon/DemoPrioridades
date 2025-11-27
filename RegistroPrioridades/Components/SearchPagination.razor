@@ -145,6 +145,24 @@
     private CancellationTokenSource? _debounceCts = null;
     private CancellationTokenSource? _searchCts = null;
 
+    protected override void OnParametersSet()
+    {
+        if (DataProvider == null)
+        {
+            throw new InvalidOperationException("DataProvider parameter is required.");
+        }
+
+        if (ItemTemplate == null)
+        {
+            throw new InvalidOperationException("ItemTemplate parameter is required.");
+        }
+
+        if (PageSize <= 0)
+        {
+            throw new InvalidOperationException("PageSize must be greater than zero.");
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (LoadOnInit)
@@ -191,11 +209,6 @@
 
         try
         {
-            if (DataProvider == null)
-            {
-                throw new InvalidOperationException("DataProvider parameter is required.");
-            }
-
             var request = new SearchRequest
             {
                 Text = _searchText,
@@ -232,6 +245,7 @@
     {
         _searchText = string.Empty;
         _currentPage = 1;
+        StateHasChanged(); // Update UI immediately for better user feedback
         await ExecuteSearch();
     }
 

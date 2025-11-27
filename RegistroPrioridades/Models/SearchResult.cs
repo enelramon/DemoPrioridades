@@ -21,9 +21,13 @@ public class SearchResult<T>
     /// </summary>
     /// <param name="pageSize">The number of items per page.</param>
     /// <returns>The total number of pages.</returns>
+    /// <exception cref="ArgumentException">Thrown when pageSize is less than or equal to zero.</exception>
     public int GetTotalPages(int pageSize)
     {
-        if (pageSize <= 0) return 0;
+        if (pageSize <= 0)
+        {
+            throw new ArgumentException("Page size must be greater than zero.", nameof(pageSize));
+        }
         return (int)Math.Ceiling((double)TotalCount / pageSize);
     }
 }
