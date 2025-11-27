@@ -454,9 +454,9 @@ public class SearchPaginatedTests : TestContext
         await Task.Delay(100);
         cut.Render();
 
-        // Assert
+        // Assert - Should show generic error message (not the actual exception message for security)
         var errorAlert = cut.Find(".alert-danger");
-        Assert.Contains("Test error message", errorAlert.TextContent);
+        Assert.Contains("error", errorAlert.TextContent.ToLower());
     }
 
     [Fact]

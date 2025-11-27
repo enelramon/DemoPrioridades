@@ -259,10 +259,10 @@
             // Search was cancelled, ignore
             return;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             _hasError = true;
-            _errorMessage = ex.Message;
+            _errorMessage = "Ocurrió un error al realizar la búsqueda. Por favor, intente nuevamente.";
             _items = new List<TItem>();
             _totalCount = 0;
         }
