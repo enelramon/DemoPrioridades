@@ -1,0 +1,282 @@
+@using RegistroPrioridades.Models.Search
+@typeparam TItem
+@implements IDisposable
+
+<div class="searchable-list-container">
+    <!-- Search Input -->
+    <div class="mb-3">
+        <label for="searchInput" class="form-label visually-hidden">@SearchPlaceholder</label>
+        <div class="input-group">
+            <span class="input-group-text" aria-hidden="true">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text"
+                   id="searchInput"
+                   class="form-control"
+                   placeholder="@SearchPlaceholder"
+                   value="@_searchText"
+                   @oninput="OnSearchInputChanged"
+                   aria-label="@SearchPlaceholder"
+                   aria-describedby="searchHelpText" />
+            @if (!string.IsNullOrEmpty(_searchText))
+            {
+                <button class="btn btn-outline-secondary"
+                        type="button"
+                        @onclick="ClearSearch"
+                        aria-label="Limpiar búsqueda">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            }
+        </div>
+        <small id="searchHelpText" class="form-text text-muted">
+            Escriba para buscar. Los resultados se actualizan automáticamente.
+        </small>
+    </div>
+
+    <!-- Results Area -->
+    <div class="position-relative" aria-live="polite" aria-atomic="true">
+        <!-- Loading Overlay -->
+        @if (_isLoading)
+        {
+            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75"
+                 style="z-index: 10; min-height: 100px;"
+                 role="status"
+                 aria-label="Cargando resultados">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        }
+
+        <!-- Error Alert -->
+        @if (_errorMessage != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Error:</strong> @_errorMessage
+                <button type="button"
+                        class="btn-close"
+                        @onclick="DismissError"
+                        aria-label="Cerrar alerta de error"></button>
+            </div>
+        }
+
+        <!-- Results Content -->
+        @if (_result != null)
+        {
+            @if (_result.Items.Count == 0)
+            {
+                <div class="alert alert-info" role="status">
+                    <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
+                    No se encontraron resultados para la búsqueda.
+                </div>
+            }
+            else
+            {
+                <!-- Items Container -->
+                <div class="results-container" role="list" aria-label="Resultados de búsqueda">
+                    @foreach (var item in _result.Items)
+                    {
+                        <div role="listitem">
+                            @ItemTemplate(item)
+                        </div>
+                    }
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Navegación de páginas" class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="text-muted" aria-live="polite">
+                            Mostrando @((_currentPage - 1) * PageSize + 1) - @Math.Min(_currentPage * PageSize, _result.TotalCount) de @_result.TotalCount resultados
+                        </div>
+                        <ul class="pagination mb-0">
+                            <li class="page-item @(_currentPage <= 1 ? "disabled" : "")">
+                                <button class="page-link"
+                                        @onclick="GoToPreviousPage"
+                                        disabled="@(_currentPage <= 1)"
+                                        aria-label="Página anterior">
+                                    <span aria-hidden="true">&laquo;</span> Anterior
+                                </button>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link" aria-current="page">
+                                    Página @_currentPage de @TotalPages
+                                </span>
+                            </li>
+                            <li class="page-item @(_currentPage >= TotalPages ? "disabled" : "")">
+                                <button class="page-link"
+                                        @onclick="GoToNextPage"
+                                        disabled="@(_currentPage >= TotalPages)"
+                                        aria-label="Página siguiente">
+                                    Siguiente <span aria-hidden="true">&raquo;</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The template for rendering each item.
+    /// </summary>
+    [Parameter]
+    [EditorRequired]
+    public RenderFragment<TItem> ItemTemplate { get; set; } = default!;
+
+    /// <summary>
+    /// The data provider function that fetches search results.
+    /// </summary>
+    [Parameter]
+    [EditorRequired]
+    public Func<SearchRequest, Task<SearchResult<TItem>>> DataProvider { get; set; } = default!;
+
+    /// <summary>
+    /// Number of items per page.
+    /// </summary>
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    /// <summary>
+    /// Placeholder text for the search input.
+    /// </summary>
+    [Parameter]
+    public string SearchPlaceholder { get; set; } = "Buscar...";
+
+    /// <summary>
+    /// Debounce delay in milliseconds.
+    /// </summary>
+    [Parameter]
+    public int DebounceMilliseconds { get; set; } = 300;
+
+    private string _searchText = string.Empty;
+    private int _currentPage = 1;
+    private bool _isLoading = false;
+    private string? _errorMessage = null;
+    private SearchResult<TItem>? _result;
+    private CancellationTokenSource? _debounceTokenSource;
+    private CancellationTokenSource? _searchTokenSource;
+
+    private int TotalPages => _result == null || _result.TotalCount == 0
+        ? 0
+        : (int)Math.Ceiling((double)_result.TotalCount / PageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ExecuteSearchAsync();
+    }
+
+    private async Task OnSearchInputChanged(ChangeEventArgs e)
+    {
+        _searchText = e.Value?.ToString() ?? string.Empty;
+        _currentPage = 1;
+
+        // Cancel any pending debounce
+        _debounceTokenSource?.Cancel();
+        _debounceTokenSource = new CancellationTokenSource();
+        var token = _debounceTokenSource.Token;
+
+        try
+        {
+            // Debounce: wait before executing search
+            await Task.Delay(DebounceMilliseconds, token);
+            
+            // If not cancelled, execute the search
+            await ExecuteSearchAsync();
+        }
+        catch (TaskCanceledException)
+        {
+            // Debounce was cancelled, ignore
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchText = string.Empty;
+        _currentPage = 1;
+        
+        // Cancel any pending operations
+        _debounceTokenSource?.Cancel();
+        
+        await ExecuteSearchAsync();
+    }
+
+    private async Task GoToPreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            await ExecuteSearchAsync();
+        }
+    }
+
+    private async Task GoToNextPage()
+    {
+        if (_currentPage < TotalPages)
+        {
+            _currentPage++;
+            await ExecuteSearchAsync();
+        }
+    }
+
+    private async Task ExecuteSearchAsync()
+    {
+        // Cancel any in-flight search request
+        _searchTokenSource?.Cancel();
+        _searchTokenSource = new CancellationTokenSource();
+        var token = _searchTokenSource.Token;
+
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var request = new SearchRequest
+            {
+                Text = _searchText,
+                Page = _currentPage,
+                PageSize = PageSize
+            };
+
+            var result = await DataProvider(request);
+
+            // Check if this request was cancelled
+            token.ThrowIfCancellationRequested();
+
+            _result = result;
+        }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled, ignore
+            return;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void DismissError()
+    {
+        _errorMessage = null;
+    }
+
+    public void Dispose()
+    {
+        _debounceTokenSource?.Cancel();
+        _debounceTokenSource?.Dispose();
+        _searchTokenSource?.Cancel();
+        _searchTokenSource?.Dispose();
+    }
+}

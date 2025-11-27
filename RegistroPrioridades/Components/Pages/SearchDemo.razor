@@ -1,0 +1,118 @@
+@page "/search-demo"
+@rendermode InteractiveServer
+
+<PageTitle>Demo de Búsqueda con Paginación</PageTitle>
+
+<div class="container-fluid">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">
+                <i class="bi bi-search me-2"></i>
+                Demo de Componente de Búsqueda con Paginación
+            </h3>
+        </div>
+        <div class="card-body">
+            <SearchableList TItem="ProductoDemo"
+                            DataProvider="BuscarProductosAsync"
+                            PageSize="5"
+                            SearchPlaceholder="Buscar productos por nombre...">
+                <ItemTemplate Context="producto">
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title mb-1">@producto.Nombre</h5>
+                                    <p class="card-text text-muted mb-0">@producto.Descripcion</p>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success fs-6">$@producto.Precio.ToString("N2")</span>
+                                    <br />
+                                    <small class="text-muted">Stock: @producto.Stock</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ItemTemplate>
+            </SearchableList>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Datos de ejemplo simulando una base de datos
+    private static readonly List<ProductoDemo> _productosSimulados = GenerarProductosDemo();
+
+    private static List<ProductoDemo> GenerarProductosDemo()
+    {
+        return new List<ProductoDemo>
+        {
+            new() { Id = 1, Nombre = "Laptop Dell XPS 15", Descripcion = "Laptop profesional con pantalla 4K", Precio = 1299.99m, Stock = 15 },
+            new() { Id = 2, Nombre = "Monitor Samsung 27\"", Descripcion = "Monitor curvo gaming 144Hz", Precio = 349.99m, Stock = 25 },
+            new() { Id = 3, Nombre = "Teclado Mecánico Logitech", Descripcion = "Switches Cherry MX Brown", Precio = 129.99m, Stock = 50 },
+            new() { Id = 4, Nombre = "Mouse Razer DeathAdder", Descripcion = "Mouse gaming RGB 16000 DPI", Precio = 69.99m, Stock = 100 },
+            new() { Id = 5, Nombre = "Auriculares Sony WH-1000XM4", Descripcion = "Cancelación de ruido premium", Precio = 279.99m, Stock = 30 },
+            new() { Id = 6, Nombre = "Webcam Logitech C920", Descripcion = "Full HD 1080p con micrófono", Precio = 79.99m, Stock = 45 },
+            new() { Id = 7, Nombre = "SSD Samsung 970 EVO 1TB", Descripcion = "NVMe M.2 hasta 3500MB/s", Precio = 149.99m, Stock = 60 },
+            new() { Id = 8, Nombre = "RAM Corsair Vengeance 32GB", Descripcion = "DDR4 3200MHz RGB", Precio = 119.99m, Stock = 40 },
+            new() { Id = 9, Nombre = "Fuente EVGA 750W Gold", Descripcion = "80+ Gold certificada modular", Precio = 89.99m, Stock = 35 },
+            new() { Id = 10, Nombre = "Gabinete NZXT H510", Descripcion = "ATX con panel de vidrio templado", Precio = 69.99m, Stock = 20 },
+            new() { Id = 11, Nombre = "Tarjeta Gráfica RTX 4070", Descripcion = "12GB GDDR6X Ray Tracing", Precio = 599.99m, Stock = 10 },
+            new() { Id = 12, Nombre = "Procesador AMD Ryzen 7", Descripcion = "8 núcleos 16 hilos 4.5GHz", Precio = 329.99m, Stock = 25 },
+            new() { Id = 13, Nombre = "Motherboard ASUS ROG", Descripcion = "X570 WiFi 6 PCIe 4.0", Precio = 249.99m, Stock = 15 },
+            new() { Id = 14, Nombre = "Cooler Noctua NH-D15", Descripcion = "Disipador de aire dual tower", Precio = 89.99m, Stock = 30 },
+            new() { Id = 15, Nombre = "Cable HDMI 2.1 3m", Descripcion = "8K 60Hz eARC", Precio = 24.99m, Stock = 200 },
+            new() { Id = 16, Nombre = "Hub USB-C 7 en 1", Descripcion = "HDMI, USB-A, SD, microSD", Precio = 39.99m, Stock = 80 },
+            new() { Id = 17, Nombre = "Mousepad XL Gaming", Descripcion = "90x40cm superficie speed", Precio = 29.99m, Stock = 120 },
+            new() { Id = 18, Nombre = "Lámpara LED USB", Descripcion = "Control táctil 3 tonos", Precio = 19.99m, Stock = 150 },
+            new() { Id = 19, Nombre = "Soporte Monitor Dual", Descripcion = "Brazo articulado VESA", Precio = 59.99m, Stock = 40 },
+            new() { Id = 20, Nombre = "UPS APC 1500VA", Descripcion = "Respaldo 25 minutos", Precio = 189.99m, Stock = 18 }
+        };
+    }
+
+    /// <summary>
+    /// Método que simula una búsqueda en base de datos con delay.
+    /// </summary>
+    private async Task<SearchResult<ProductoDemo>> BuscarProductosAsync(SearchRequest request)
+    {
+        // Simular latencia de red/base de datos (300-600ms)
+        await Task.Delay(Random.Shared.Next(300, 600));
+
+        // Filtrar por texto de búsqueda
+        var query = _productosSimulados.AsEnumerable();
+        
+        if (!string.IsNullOrWhiteSpace(request.Text))
+        {
+            var searchText = request.Text.ToLowerInvariant();
+            query = query.Where(p => 
+                p.Nombre.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                p.Descripcion.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var filteredList = query.ToList();
+        var totalCount = filteredList.Count;
+
+        // Aplicar paginación
+        var items = filteredList
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        return new SearchResult<ProductoDemo>
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
+    }
+
+    /// <summary>
+    /// Clase de ejemplo para demostrar el componente.
+    /// </summary>
+    public class ProductoDemo
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
+        public int Stock { get; set; }
+    }
+}
