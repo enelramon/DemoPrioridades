@@ -1,0 +1,114 @@
+@page "/SearchDemo"
+@rendermode InteractiveServer
+
+<PageTitle>Demo de Búsqueda con Paginación</PageTitle>
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Demo: Componente de Búsqueda con Paginación</h3>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-4">
+                Este es un ejemplo del componente reutilizable de búsqueda con paginación.
+                Simula una llamada a base de datos con un listado de productos.
+            </p>
+
+            <SearchPagination TItem="ProductoDemo"
+                              DataProvider="BuscarProductosAsync"
+                              PageSize="5"
+                              Placeholder="Buscar productos..."
+                              LoadOnInit="true">
+                <ItemTemplate Context="producto">
+                    <div class="card mb-2">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-1">@producto.Nombre</h5>
+                                <p class="card-text text-muted mb-0">@producto.Descripcion</p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success fs-6">@producto.Precio.ToString("C")</span>
+                                <br />
+                                <small class="text-muted">Stock: @producto.Stock</small>
+                            </div>
+                        </div>
+                    </div>
+                </ItemTemplate>
+            </SearchPagination>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Datos de ejemplo simulando una base de datos
+    private static readonly List<ProductoDemo> _productosSimulados = new List<ProductoDemo>
+    {
+        new ProductoDemo { Id = 1, Nombre = "Laptop HP Pavilion", Descripcion = "Laptop 15.6\" Intel Core i5, 8GB RAM", Precio = 799.99m, Stock = 15 },
+        new ProductoDemo { Id = 2, Nombre = "Mouse Logitech MX", Descripcion = "Mouse inalámbrico ergonómico", Precio = 79.99m, Stock = 50 },
+        new ProductoDemo { Id = 3, Nombre = "Teclado Mecánico RGB", Descripcion = "Teclado gaming con switches Cherry MX", Precio = 149.99m, Stock = 30 },
+        new ProductoDemo { Id = 4, Nombre = "Monitor Samsung 27\"", Descripcion = "Monitor 4K UHD con HDR", Precio = 449.99m, Stock = 20 },
+        new ProductoDemo { Id = 5, Nombre = "Webcam Logitech C920", Descripcion = "Webcam Full HD 1080p", Precio = 69.99m, Stock = 45 },
+        new ProductoDemo { Id = 6, Nombre = "Auriculares Sony WH-1000", Descripcion = "Auriculares con cancelación de ruido", Precio = 299.99m, Stock = 25 },
+        new ProductoDemo { Id = 7, Nombre = "SSD Samsung 1TB", Descripcion = "Disco SSD NVMe M.2", Precio = 129.99m, Stock = 60 },
+        new ProductoDemo { Id = 8, Nombre = "Router ASUS AX6000", Descripcion = "Router WiFi 6 de alto rendimiento", Precio = 349.99m, Stock = 12 },
+        new ProductoDemo { Id = 9, Nombre = "Impresora HP LaserJet", Descripcion = "Impresora láser monocromática", Precio = 199.99m, Stock = 18 },
+        new ProductoDemo { Id = 10, Nombre = "USB Hub 7 Puertos", Descripcion = "Hub USB 3.0 con alimentación", Precio = 39.99m, Stock = 75 },
+        new ProductoDemo { Id = 11, Nombre = "Dock Station USB-C", Descripcion = "Estación de acoplamiento universal", Precio = 189.99m, Stock = 22 },
+        new ProductoDemo { Id = 12, Nombre = "Cable HDMI 2.1 3m", Descripcion = "Cable HDMI 8K compatible", Precio = 24.99m, Stock = 100 },
+        new ProductoDemo { Id = 13, Nombre = "Memoria RAM DDR4 16GB", Descripcion = "Kit de memoria 3200MHz", Precio = 79.99m, Stock = 40 },
+        new ProductoDemo { Id = 14, Nombre = "Fuente de Poder 750W", Descripcion = "PSU modular 80+ Gold", Precio = 119.99m, Stock = 28 },
+        new ProductoDemo { Id = 15, Nombre = "Gabinete ATX Gaming", Descripcion = "Case con panel de vidrio templado", Precio = 89.99m, Stock = 35 },
+        new ProductoDemo { Id = 16, Nombre = "Tarjeta Gráfica RTX 4060", Descripcion = "GPU NVIDIA GeForce 8GB", Precio = 299.99m, Stock = 8 },
+        new ProductoDemo { Id = 17, Nombre = "Procesador AMD Ryzen 7", Descripcion = "CPU 8 núcleos, 16 hilos", Precio = 329.99m, Stock = 15 },
+        new ProductoDemo { Id = 18, Nombre = "Motherboard ASUS B550", Descripcion = "Placa base AM4 con WiFi", Precio = 179.99m, Stock = 20 },
+        new ProductoDemo { Id = 19, Nombre = "Cooler Noctua NH-D15", Descripcion = "Disipador de CPU de alto rendimiento", Precio = 99.99m, Stock = 30 },
+        new ProductoDemo { Id = 20, Nombre = "Mousepad XL Gaming", Descripcion = "Alfombrilla extendida 90x40cm", Precio = 29.99m, Stock = 55 }
+    };
+
+    /// <summary>
+    /// Simula una llamada a base de datos con búsqueda y paginación.
+    /// </summary>
+    private async Task<SearchResult<ProductoDemo>> BuscarProductosAsync(SearchRequest request, CancellationToken cancellationToken)
+    {
+        // Simular latencia de red/base de datos
+        await Task.Delay(500, cancellationToken);
+
+        // Filtrar por texto de búsqueda
+        var query = _productosSimulados.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.Text))
+        {
+            var searchText = request.Text.ToLower();
+            query = query.Where(p =>
+                p.Nombre.ToLower().Contains(searchText) ||
+                p.Descripcion.ToLower().Contains(searchText));
+        }
+
+        // Obtener total antes de paginar
+        var totalCount = query.Count();
+
+        // Aplicar paginación
+        var items = query
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        return new SearchResult<ProductoDemo>
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
+    }
+
+    /// <summary>
+    /// Clase de ejemplo para demostrar el componente.
+    /// </summary>
+    public class ProductoDemo
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
+        public int Stock { get; set; }
+    }
+}
