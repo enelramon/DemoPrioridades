@@ -160,7 +160,7 @@
     private CancellationTokenSource? _searchTokenSource;
 
     private int TotalPages => _result == null || _result.TotalCount == 0
-        ? 1
+        ? 0
         : (int)Math.Ceiling((double)_result.TotalCount / PageSize);
 
     protected override async Task OnInitializedAsync()
