@@ -458,6 +458,111 @@ public class SearchPaginationTests : TestContext
         var input = cut.Find("input#search-input");
         Assert.NotNull(input.GetAttribute("aria-label"));
     }
+
+    /// <summary>
+    /// Test that OnItemSelected is triggered when an item is clicked.
+    /// </summary>
+    [Fact]
+    public async Task SearchPagination_OnItemSelected_TriggeredOnClick()
+    {
+        // Arrange
+        TestItem? selectedItem = null;
+        var items = new List<TestItem>
+        {
+            new TestItem { Id = 1, Name = "Item 1" },
+            new TestItem { Id = 2, Name = "Item 2" }
+        };
+        var dataProvider = CreateDataProvider(items, 2);
+
+        var cut = RenderComponent<SearchPagination<TestItem>>(parameters => parameters
+            .Add(p => p.DataProvider, dataProvider)
+            .Add(p => p.PageSize, 10)
+            .Add(p => p.LoadOnInit, true)
+            .Add(p => p.OnItemSelected, (item) => { selectedItem = item; })
+            .Add(p => p.ItemTemplate, item => (RenderFragment)(builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "class", "test-item");
+                builder.AddContent(2, item.Name);
+                builder.CloseElement();
+            })));
+
+        // Wait for data to load
+        cut.WaitForState(() => cut.FindAll(".test-item").Count > 0);
+
+        // Act - Click on the first item wrapper
+        var itemWrapper = cut.Find(".search-item-wrapper");
+        await itemWrapper.ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        // Assert
+        Assert.NotNull(selectedItem);
+        Assert.Equal(1, selectedItem.Id);
+        Assert.Equal("Item 1", selectedItem.Name);
+    }
+
+    /// <summary>
+    /// Test that item wrappers are clickable when OnItemSelected is provided.
+    /// </summary>
+    [Fact]
+    public void SearchPagination_ItemsAreClickable_WhenOnItemSelectedProvided()
+    {
+        // Arrange
+        var items = new List<TestItem> { new TestItem { Id = 1, Name = "Item 1" } };
+        var dataProvider = CreateDataProvider(items, 1);
+
+        // Act
+        var cut = RenderComponent<SearchPagination<TestItem>>(parameters => parameters
+            .Add(p => p.DataProvider, dataProvider)
+            .Add(p => p.PageSize, 10)
+            .Add(p => p.LoadOnInit, true)
+            .Add(p => p.OnItemSelected, (item) => { })
+            .Add(p => p.ItemTemplate, item => (RenderFragment)(builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "class", "test-item");
+                builder.AddContent(2, item.Name);
+                builder.CloseElement();
+            })));
+
+        // Wait for data to load
+        cut.WaitForState(() => cut.FindAll(".test-item").Count > 0);
+
+        // Assert - Item wrapper should have cursor pointer and role button
+        var itemWrapper = cut.Find(".search-item-wrapper");
+        Assert.Contains("cursor: pointer", itemWrapper.GetAttribute("style") ?? "");
+        Assert.Equal("button", itemWrapper.GetAttribute("role"));
+    }
+
+    /// <summary>
+    /// Test that items are not wrapped when OnItemSelected is not provided.
+    /// </summary>
+    [Fact]
+    public void SearchPagination_ItemsNotWrapped_WhenOnItemSelectedNotProvided()
+    {
+        // Arrange
+        var items = new List<TestItem> { new TestItem { Id = 1, Name = "Item 1" } };
+        var dataProvider = CreateDataProvider(items, 1);
+
+        // Act
+        var cut = RenderComponent<SearchPagination<TestItem>>(parameters => parameters
+            .Add(p => p.DataProvider, dataProvider)
+            .Add(p => p.PageSize, 10)
+            .Add(p => p.LoadOnInit, true)
+            .Add(p => p.ItemTemplate, item => (RenderFragment)(builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "class", "test-item");
+                builder.AddContent(2, item.Name);
+                builder.CloseElement();
+            })));
+
+        // Wait for data to load
+        cut.WaitForState(() => cut.FindAll(".test-item").Count > 0);
+
+        // Assert - No item wrapper should exist
+        var wrappers = cut.FindAll(".search-item-wrapper");
+        Assert.Empty(wrappers);
+    }
 }
 
 /// <summary>

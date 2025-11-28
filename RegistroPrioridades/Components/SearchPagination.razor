@@ -57,7 +57,22 @@
                 <div class="results-container">
                     @foreach (var item in _searchResult.Items)
                     {
-                        @ItemTemplate(item)
+                        @if (OnItemSelected.HasDelegate)
+                        {
+                            <div class="search-item-wrapper" 
+                                 style="cursor: pointer;" 
+                                 @onclick="() => HandleItemClick(item)"
+                                 role="button"
+                                 tabindex="0"
+                                 @onkeydown="(e) => HandleItemKeyDown(e, item)"
+                                 aria-label="Seleccionar item">
+                                @ItemTemplate(item)
+                            </div>
+                        }
+                        else
+                        {
+                            @ItemTemplate(item)
+                        }
                     }
                 </div>
 
@@ -129,6 +144,12 @@
     /// </summary>
     [Parameter]
     public int DebounceDelay { get; set; } = 300;
+
+    /// <summary>
+    /// Event callback triggered when an item is clicked/selected.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem> OnItemSelected { get; set; }
 
     /// <summary>
     /// Whether to automatically load data on initialization.
@@ -270,6 +291,22 @@
     private void DismissError()
     {
         _errorMessage = null;
+    }
+
+    private async Task HandleItemClick(TItem item)
+    {
+        if (OnItemSelected.HasDelegate)
+        {
+            await OnItemSelected.InvokeAsync(item);
+        }
+    }
+
+    private async Task HandleItemKeyDown(KeyboardEventArgs e, TItem item)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await HandleItemClick(item);
+        }
     }
 
     public void Dispose()
