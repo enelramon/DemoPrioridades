@@ -53,7 +53,7 @@ h1:focus {
 /*#region SAG Modal Dialog */
 .sag-modal-shadow {
     z-index: 100;
-    position: absolute;
+    position: fixed;
     top: 0px;
     left: 0px;
     bottom: 0px;
@@ -121,9 +121,5 @@ h1:focus {
 
 .textColorCocoa {
     color: #A16C3A;
-}
-
-.modal-position-fixed > .sag-modal-shadow {
-    position: fixed;
 }
 /*#endregion */
