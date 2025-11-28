@@ -1,0 +1,422 @@
+@using RegistroPrioridades.Models
+@typeparam TItem
+@implements IDisposable
+
+<div class="sag-modal-shadow @(_isVisible ? "visible" : "oculta")"
+     @onclick="OnBackdropClick"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="searchModalTitle"
+     aria-hidden="@(!_isVisible)">
+    <div class="sag-modal-body" @onclick:stopPropagation="true">
+        <!-- Modal Header -->
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-primary text-white">
+            <h5 id="searchModalTitle" class="mb-0">
+                    <i class="bi bi-search me-2"></i>@Title
+                </h5>
+                <button type="button" 
+                        class="btn-close btn-close-white" 
+                        @onclick="Close"
+                        aria-label="Cerrar modal">
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-3">
+                <!-- Search Input Section -->
+                <div class="mb-3">
+                    <label for="searchInput" class="form-label visually-hidden">Búsqueda</label>
+                    <div class="input-group">
+                        <input type="text"
+                               id="searchInput"
+                               class="form-control"
+                               placeholder="@Placeholder"
+                               value="@_searchText"
+                               @oninput="OnSearchInput"
+                               aria-label="@Placeholder"
+                               aria-describedby="searchClearButton" />
+                        @if (!string.IsNullOrEmpty(_searchText))
+                        {
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    id="searchClearButton"
+                                    @onclick="ClearSearch"
+                                    aria-label="Limpiar búsqueda">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Loading Overlay -->
+                @if (_isLoading)
+                {
+                    <div class="position-relative" style="min-height: 100px;">
+                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75"
+                             role="status"
+                             aria-live="polite"
+                             aria-label="Cargando resultados">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Error Alert -->
+                @if (_hasError && !_isLoading)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show"
+                         role="alert"
+                         aria-live="assertive">
+                        <strong>Error:</strong> @_errorMessage
+                        <button type="button"
+                                class="btn-close"
+                                @onclick="DismissError"
+                                aria-label="Cerrar alerta de error">
+                        </button>
+                    </div>
+                }
+
+                <!-- Results Section -->
+                @if (!_isLoading && !_hasError)
+                {
+                    <div aria-live="polite" aria-atomic="true">
+                        @if (_items.Count == 0)
+                        {
+                            <div class="alert alert-info" role="status">
+                                No se encontraron resultados.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="results-container mb-3" style="max-height: 400px; overflow-y: auto;">
+                                @foreach (var item in _items)
+                                {
+                                    <div role="button"
+                                         tabindex="0"
+                                         @onclick="() => OnItemSelected(item)"
+                                         @onkeydown="(e) => OnItemKeyDown(e, item)"
+                                         style="cursor: pointer;"
+                                         aria-label="Seleccionar elemento">
+                                        @ItemTemplate(item)
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Pagination -->
+                            <nav aria-label="Paginación de resultados">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="pagination-info" aria-live="polite">
+                                        Página @_currentPage de @TotalPages (@_totalCount resultados)
+                                    </div>
+                                    <ul class="pagination mb-0">
+                                        <li class="page-item @(_currentPage <= 1 ? "disabled" : "")">
+                                            <button class="page-link"
+                                                    @onclick="GoToPreviousPage"
+                                                    disabled="@(_currentPage <= 1)"
+                                                    aria-label="Ir a la página anterior">
+                                                Anterior
+                                            </button>
+                                        </li>
+                                        <li class="page-item @(_currentPage >= TotalPages ? "disabled" : "")">
+                                            <button class="page-link"
+                                                    @onclick="GoToNextPage"
+                                                    disabled="@(_currentPage >= TotalPages)"
+                                                    aria-label="Ir a la página siguiente">
+                                                Siguiente
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </nav>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="d-flex justify-content-end p-3 border-top">
+                <button type="button" class="btn btn-secondary" @onclick="Close">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+@code {
+    /// <summary>
+    /// The data provider function that retrieves search results.
+    /// </summary>
+    [Parameter]
+    public Func<SearchRequest, Task<SearchResult<TItem>>>? DataProvider { get; set; }
+
+    /// <summary>
+    /// Template for rendering each item in the results.
+    /// </summary>
+    [Parameter]
+    [EditorRequired]
+    public RenderFragment<TItem> ItemTemplate { get; set; } = default!;
+
+    /// <summary>
+    /// Placeholder text for the search input.
+    /// </summary>
+    [Parameter]
+    public string Placeholder { get; set; } = "Buscar...";
+
+    /// <summary>
+    /// Title for the modal header.
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Búsqueda";
+
+    /// <summary>
+    /// Number of items per page.
+    /// </summary>
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    /// <summary>
+    /// Debounce delay in milliseconds.
+    /// </summary>
+    [Parameter]
+    public int DebounceDelay { get; set; } = 300;
+
+    /// <summary>
+    /// Whether the modal is currently visible.
+    /// </summary>
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    /// <summary>
+    /// Event callback when visibility changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    /// <summary>
+    /// Event callback when an item is selected.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem> OnItemSelect { get; set; }
+
+    /// <summary>
+    /// Whether to close the modal when an item is selected.
+    /// </summary>
+    [Parameter]
+    public bool CloseOnSelect { get; set; } = true;
+
+    private List<TItem> _items = new();
+    private string _searchText = string.Empty;
+    private int _currentPage = 1;
+    private int _totalCount;
+    private bool _isLoading;
+    private bool _hasError;
+    private string _errorMessage = string.Empty;
+    private CancellationTokenSource? _debounceTokenSource;
+    private CancellationTokenSource? _searchTokenSource;
+    private bool _isVisible;
+    private bool _hasInitialized;
+
+    private int TotalPages => _totalCount == 0 ? 1 : (int)Math.Ceiling((double)_totalCount / PageSize);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible != _isVisible)
+        {
+            _isVisible = IsVisible;
+            if (_isVisible && !_hasInitialized)
+            {
+                _hasInitialized = true;
+                await ExecuteSearchAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens the modal dialog.
+    /// </summary>
+    public async Task Open()
+    {
+        if (_isVisible)
+        {
+            return;
+        }
+        
+        _isVisible = true;
+        if (IsVisibleChanged.HasDelegate)
+        {
+            await IsVisibleChanged.InvokeAsync(true);
+        }
+        if (!_hasInitialized)
+        {
+            _hasInitialized = true;
+            await ExecuteSearchAsync();
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Closes the modal dialog.
+    /// </summary>
+    public async Task Close()
+    {
+        if (!_isVisible)
+        {
+            return;
+        }
+        
+        _isVisible = false;
+        if (IsVisibleChanged.HasDelegate)
+        {
+            await IsVisibleChanged.InvokeAsync(false);
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnBackdropClick()
+    {
+        await Close();
+    }
+
+    private async Task OnItemSelected(TItem item)
+    {
+        await OnItemSelect.InvokeAsync(item);
+        if (CloseOnSelect)
+        {
+            await Close();
+        }
+    }
+
+    private async Task OnItemKeyDown(KeyboardEventArgs e, TItem item)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await OnItemSelected(item);
+        }
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _searchText = e.Value?.ToString() ?? string.Empty;
+        _currentPage = 1;
+
+        // Cancel any pending debounce
+        _debounceTokenSource?.Cancel();
+        _debounceTokenSource?.Dispose();
+        _debounceTokenSource = new CancellationTokenSource();
+
+        var token = _debounceTokenSource.Token;
+
+        try
+        {
+            // Debounce delay
+            await Task.Delay(DebounceDelay, token);
+
+            if (!token.IsCancellationRequested)
+            {
+                await ExecuteSearchAsync();
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Debounce was cancelled, ignore
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchText = string.Empty;
+        _currentPage = 1;
+        await ExecuteSearchAsync();
+    }
+
+    private async Task GoToPreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            await ExecuteSearchAsync();
+        }
+    }
+
+    private async Task GoToNextPage()
+    {
+        if (_currentPage < TotalPages)
+        {
+            _currentPage++;
+            await ExecuteSearchAsync();
+        }
+    }
+
+    private void DismissError()
+    {
+        _hasError = false;
+        _errorMessage = string.Empty;
+    }
+
+    private async Task ExecuteSearchAsync()
+    {
+        if (DataProvider == null)
+        {
+            return;
+        }
+
+        // Cancel any pending search operation
+        _searchTokenSource?.Cancel();
+        _searchTokenSource?.Dispose();
+        _searchTokenSource = new CancellationTokenSource();
+
+        var token = _searchTokenSource.Token;
+
+        _isLoading = true;
+        _hasError = false;
+        StateHasChanged();
+
+        try
+        {
+            var request = new SearchRequest
+            {
+                Text = _searchText,
+                Page = _currentPage,
+                PageSize = PageSize
+            };
+
+            // Check cancellation before awaiting
+            token.ThrowIfCancellationRequested();
+
+            var result = await DataProvider(request);
+
+            // Check cancellation after awaiting
+            token.ThrowIfCancellationRequested();
+
+            _items = result.Items;
+            _totalCount = result.TotalCount;
+        }
+        catch (OperationCanceledException)
+        {
+            // Search was cancelled, ignore
+            return;
+        }
+        catch (Exception)
+        {
+            _hasError = true;
+            _errorMessage = "Ocurrió un error al realizar la búsqueda. Por favor, intente nuevamente.";
+            _items = new List<TItem>();
+            _totalCount = 0;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceTokenSource?.Cancel();
+        _debounceTokenSource?.Dispose();
+        _searchTokenSource?.Cancel();
+        _searchTokenSource?.Dispose();
+    }
+}
